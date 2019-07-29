@@ -1,0 +1,11 @@
+/var/log/chrony/*.log {
+    missingok
+    size 100M
+    nodateext
+    create 0644 chrony chrony
+    rotate 14
+    sharedscripts
+    postrotate
+        /usr/libexec/chrony-helper command cyclelogs > /dev/null 2>&1 || true
+    endscript
+}

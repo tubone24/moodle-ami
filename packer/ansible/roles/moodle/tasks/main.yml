@@ -1,0 +1,151 @@
+---
+- name: Replace the AWSLogs configuration file
+  copy: 
+    src: "../files/etc/awslogs/awslogs.conf"
+    dest: /etc/awslogs/awslogs.conf 
+    mode: 0644
+- name: Restart AWS Logs
+  service:
+      name: awslogs
+      state: restarted
+- name: Apply Remi repository
+  yum:
+    name: http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+- name: Disable Remi repository
+  replace:
+    dest: /etc/yum.repos.d/remi.repo
+    regexp: "enabled *= *1"
+    replace: "enabled=0"
+- name: Install libwebp
+  yum:
+    name: libwebp
+    disablerepo: amzn-main
+    enablerepo: epel
+- name: Install httpd
+  yum:
+    name: httpd
+- name: Enable httpd
+  service:
+    name: httpd
+    enabled: yes
+- name: Install php 7.0
+  yum:
+    name: php
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the phpzip extension
+  yum:
+    name: php-pecl-zip
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the phpMySQL extension
+  yum:
+    name: php-mysqlnd
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: install the phpXML extension
+  yum:
+    name: php-xml
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install phpGD dependent libtiff
+  yum:
+    name: libtiff
+    enablerepo: remi
+- name: Install phpGD dependent compat-libtiff3
+  yum:
+    name: compat-libtiff3
+- name: Install phpGD dependent libXpm
+  yum:
+    name: libXpm
+- name: Install phpGD dependent gd-last
+  yum:
+    name: gd-last
+    disablerepo: amzn-main
+    enablerepo: remi
+- name: Install the phpGD extension
+  yum:
+    name: php-gd
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the php internationalization support extension
+  yum:
+    name: php-intl
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the php multibyte extension
+  yum:
+    name: php-mbstring
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the phpXMLRPC extension
+  yum:
+    name: php-xmlrpc
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the phpOPcache caching extension
+  yum:
+    name: php-opcache
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install the phpSOAP extension
+  yum:
+    name: php-soap
+    disablerepo: amzn-main
+    enablerepo: remi-php70
+- name: Install mysql-server
+  yum:
+    name: mysql-server
+- name: Replace my.cnf in MySQL
+  copy:
+    src: "../files/etc/my.cnf"
+    dest: "/etc/"
+    mode: 0644
+- name: restart mysql-server
+  service:
+    name: mysqld
+    state: restarted
+- name: Enable mysql-server
+  service:
+    name: mysqld
+    enabled: yes
+- name: Extract moodle DB file into tmp
+  copy:
+    src: "../files/tmp/moodle.sql"
+    dest: "/tmp/"
+    mode: 0644
+- name: Change the MySQL root password
+  command: "mysql -uroot -e \"SET PASSWORD FOR 'root'@'localhost'=password('{{ mysql_root_password }}'); flush privileges;\""
+  ignore_errors: yes
+- name: Check if moodleDB exists
+  command: "mysql -uroot -p{{ mysql_root_password }} -e 'use moodle'"
+  register: res
+  always_run: yes
+  failed_when: no
+  changed_when: "\"ERROR 1049 (42000) at line 1: Unknown database 'moodle'\" in res.stderr"
+- name: Create moodleDB
+  command: "mysql -uroot -p{{ mysql_root_password }} -e 'create database moodle'"
+  when: res|changed
+- name: Import moodle DB
+  shell: "mysql -uroot -p{{ mysql_root_password }} moodle  < /tmp/moodle.sql"
+  register: cmd_res
+  failed_when: "'ERROR' in cmd_res.stderr"
+- name: Extract moodle source to html directory
+  unarchive:
+    src: "../files/tmp/moodle-3.4.2.tgz"
+    dest: "/var/www/html/"
+- name: Copy moodle configuration file
+  copy:
+    src: "../files/var/www/html/moodle/config.php"
+    dest: "/var/www/html/moodle/"
+    mode: 0644
+    owner: "apache"
+    group: "apache"
+- name: Create moodle data directory
+  file:
+    dest: "/var/www/moodledata"
+    state: directory
+    owner: "apache"
+    group: "apache"
+    mode: 0771
+

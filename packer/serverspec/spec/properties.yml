@@ -1,0 +1,6 @@
+aws-training:
+  :user: aws-training
+  :uid: 5000
+  :group: aws-training
+  :gid: 5000
+:db_passwd: passWord

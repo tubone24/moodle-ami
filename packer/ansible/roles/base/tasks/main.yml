@@ -1,0 +1,234 @@
+---
+- name:Change locale to Japanese(cloud.cfg)
+  lineinfile:
+    dest: /etc/cloud/cloud.cfg
+    line: "locale: ja_JP.UTF-8"
+- name: Change locale to Japanese(i18n)
+  replace:
+    dest: /etc/sysconfig/i18n
+    regexp: '^LANG=en_US\.UTF-8'
+    replace: 'LANG=ja_JP.UTF-8'
+- name: Change time zone to UTC
+  replace:
+    dest: /etc/sysconfig/clock
+    regexp: '^ZONE=\"UTC\"'
+    replace: 'ZONE="Asia/Tokyo"'
+- name: Change local time
+  file:
+    src: /usr/share/zoneinfo/Asia/Tokyo
+    dest: /etc/localtime
+    state: link
+    force: yes
+- name: set nproc soft limit
+  pam_limits:
+    domain: "*"
+    limit_type: soft
+    limit_item: nproc
+    value: 65536
+- name: set nproc hard limit
+  pam_limits:
+    domain: "*"
+    limit_type: hard
+    limit_item: nproc
+    value: 65536
+- name: set nofile soft limit
+  pam_limits:
+    domain: "*"
+    limit_type: soft
+    limit_item: nofile
+    value: 65536
+- name: set nofile hard limit
+  pam_limits:
+    domain: "*"
+    limit_type: hard
+    limit_item: nofile
+    value: 65536
+- name: set sysctl.conf
+  copy:
+    src: "../files/etc/sysctl.conf"
+    dest: "/etc/."
+    mode: 0644
+- name: apply sysctl.conf
+  command: /sbin/sysctl -p
+- name: stop iptables
+  service:
+    name: iptables
+    state: stopped
+- name: disable iptables
+  service:
+    name: iptables
+    enabled: no
+- name: stop ip6tables
+  service:
+    name: ip6tables
+    state: stopped
+- name: disable ip6tables
+  service:
+    name: ip6tables
+    enabled: no
+- name: Add group
+  group:
+    name: "{{ usergroup.aws-training.group }}"
+    gid: "{{ usergroup.aws-training.gid }}"
+- name: Add user
+  user:
+    name: "{{ usergroup.aws-training.user }}"
+    uid: "{{ usergroup.aws-training.uid }}"
+    group: "{{ usergroup.aws-training.group }}"
+- name: create a .ssh directory
+  file:
+    dest: "/home/{{ usergroup.aws-training.user }}/.ssh/"
+    state: directory
+    owner: "{{ usergroup.aws-training.user }}"
+    group: "{{ usergroup.aws-training.group }}"
+    mode: 0700
+- name: Grant sudo permission
+  lineinfile:
+    dest: "/etc/sudoers.d/users"
+    owner: root
+    group: root
+    mode: 0440
+    state: present
+    create: yes
+    line: "{{ usergroup.aws-training.user }} {{ usergroup.aws-training.role }}"
+    validate: 'visudo -cf %s'
+- name: Move ssh public key
+  command: mv /home/ec2-user/.ssh/authorized_keys /home/{{ usergroup.aws-training.user }}/.ssh/authorized_keys
+- name: Change owner of authorized_keys
+  command: chown {{ usergroup.aws-training.user }}:{{ usergroup.aws-training.group }} /home/{{ usergroup.aws-training.user }}/.ssh/authorized_keys
+- name: Change the mode of authorized_keys
+  command: chmod 600 /home/{{ usergroup.aws-training.user }}/.ssh/authorized_keys
+- name: Disable yum fastestmirror
+  lineinfile:
+    dest: /etc/yum/pluginconf.d/fastestmirror.conf
+    owner: root
+    group: root
+    mode: 0644
+    state: present
+    regexp: "^#?enabled="
+    insertafter: EOF
+    create: yes
+    line: "enabled=0"
+- name: yum update
+  yum:
+    name: "*"
+    state: latest
+- name: Download epel-release
+  yum:
+    name: epel-release
+    state: present
+- name: install bind-utils(nslookup/dig)
+  yum:
+    name: bind-utils
+- name: install jq
+  yum:
+    name: jq
+- name: install tcpdump
+  yum:
+    name: tcpdump
+- name: install git
+  yum:
+    name: git
+- name: set auditlog
+  copy:
+    src: "../files/etc/audit/audit.rules"
+    dest: "/etc/audit/."
+    mode: 0640
+- name: set auditlog daemon
+  copy:
+    src: "../files/etc/audit/auditd.conf"
+    dest: "/etc/audit/."
+    mode: 0640
+- name: restart auditlog
+  service:
+    name: auditd
+    state: restarted
+- name: Set timeout for Bash session
+  copy:
+    src: "../files/etc/profile.d/bash_timeout.sh"
+    dest: "/etc/profile.d/."
+    mode: 0644
+- name: uninstall ntp
+  yum:
+    name: ntp
+    state: absent
+- name: install chrony
+  yum:
+    name: chrony
+    state: present
+- name: Specifies the NTP synchronization destination
+  copy:
+    src: "../files/etc/chrony.conf"
+    dest: "/etc/."
+    mode: 0644
+- name: chrony enabled
+  service:
+    name: chronyd
+    enabled: yes
+- name: Update SSH configuration file
+  copy:
+    src: "../files/etc/ssh/sshd_config"
+    dest: "/etc/ssh/."
+    mode: 0644
+- name: Install AWS Logs
+  yum:
+    name: awslogs
+    state: present
+- name: Copy the AWSCli configuration file
+  copy:
+    src: "../files/etc/awslogs/awscli.conf"
+    dest: "/etc/awslogs/."
+    mode: 0644
+- name: Create the AWSLogs state directory
+  file:
+    dest: "/var/awslogs/state/"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+- name: Activate AWS Logs
+  service:
+    name: awslogs
+    enabled: yes
+- name: Copy logrotate cron configuration file
+  copy:
+    src: "../files/etc/logrotate.d/cron"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Copy logrotate messages configuration file
+  copy:
+    src: "../files/etc/logrotate.d/messages"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Copy the logrotate secure configuration file
+  copy:
+    src: "../files/etc/logrotate.d/secure"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Copy logrotate syslog configuration file
+  copy:
+    src: "../files/etc/logrotate.d/syslog"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Copy logrotate awslogs configuration file
+  copy:
+    src: "../files/etc/logrotate.d/awslogs"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Copy logrotate chrony configuration file
+  copy:
+    src: "../files/etc/logrotate.d/chrony"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Copy logrotate cloud-init configuration file
+  copy:
+    src: "../files/etc/logrotate.d/cloud-init"
+    dest: "/etc/logrotate.d/."
+    mode: 0644
+- name: Reflect the setting of logrotate
+  command: /usr/sbin/logrotate /etc/logrotate.conf
+- name: Comment out update_hostname of cloud.cfg
+  lineinfile:
+    dest: "/etc/cloud/cloud.cfg"
+    regexp: "^ - update_hostname$"
+    line: "# - update_hostname"

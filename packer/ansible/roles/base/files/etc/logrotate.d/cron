@@ -1,0 +1,12 @@
+/var/log/cron
+{
+    missingok
+    notifempty
+    size 100M
+    nodateext
+    create 0644 root root
+    rotate 14
+    postrotate
+        /bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true
+    endscript
+}

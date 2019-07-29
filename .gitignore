@@ -1,0 +1,32 @@
+# PyCharm
+.idea/
+
+# source
+src/*
+!.gitkeep
+
+# Cache objects
+packer_cache/
+
+# For built boxes
+*.box
+.vagrant
+
+# download keypair
+*keypair*
+*.pem
+
+# ansible
+*.retry
+
+# rbenv
+.ruby-version
+.rbenv-gemsets
+.bundle
+vendor/
+
+# serverspec
+serverspec.tmp
+
+# mac
+*.DS_Store

@@ -1,0 +1,6 @@
+{
+    "packer_tag_prefix":  "Packer-Moodle-AMI",
+    "instance_tag_prefix": "PF_AWS_MOODLE_OPTIMIZED",
+    "aws_source_ami": "ami-084d4626fec6f3ca3",
+    "provision_target": "moodle"
+}

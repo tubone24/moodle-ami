@@ -1,0 +1,7 @@
+usergroup:
+  aws-training:
+    group: aws-training
+    gid: 5000
+    user: aws-training
+    uid: 5000
+    role: "ALL=(ALL) NOPASSWD:ALL"

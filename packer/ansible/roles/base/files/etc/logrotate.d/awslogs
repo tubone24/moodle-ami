@@ -1,0 +1,12 @@
+# Version: 1.3.9
+/var/log/awslogs.log {
+    missingok
+    notifempty
+    size 100M
+    nodateext
+    create 0644 root root
+    rotate 14
+    postrotate
+        systemctl restart awslogs
+    endscript
+}

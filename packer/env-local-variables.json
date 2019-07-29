@@ -1,0 +1,7 @@
+{
+    "env": "dev",
+    "ssh_host": "127.0.0.1",
+    "ssh_user": "ec2-user",
+    "ssh_port": "2222"
+}
+
