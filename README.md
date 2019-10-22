@@ -1,5 +1,7 @@
 # Moodle AMI
 
+![header](./docs/images/header.png)
+
 Moodle Ami repository used by AWS Training
 
 ## What is this repo?
